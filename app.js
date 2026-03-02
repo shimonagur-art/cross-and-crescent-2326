@@ -1,42 +1,41 @@
 // ==============================
-// Cross & Crescent - app.js (DATA-DRIVEN)
+// Cross & Crescent - app.js (OBJECT-TABS)
 // Loads:
 //   - data/objects.json  (array of objects)
-//   - data/periods.json  ({ periods: [...] })
-// Renders:
-//   - markers per object location
-//   - hover tooltips with thumbnails (minimal text)
-//   - click opens right panel with full details
-//   - routes (influence) from each location -> target, colored by influence
-// Adds:
-//   - Fade-out old period then fade-in new period (smooth transitions)
-//   - Route "crawl" animation (dashed during crawl, no judder)
-// ✅ Curved routes (no plugin; safe)
-// ✅ Per-route curve overrides (optional) + automatic fan-out
-// ✅ Route end markers as small rounded squares + tiny hover tooltip
+// Renders (per selected object tab):
+//   - origin marker(s) from obj.locations
+//   - destination marker(s) from obj.routes (same size/colour/behaviour as origin)
+//   - routes (curved or straight depending on obj.routes[].curve)
+// Interaction:
+//   - Hover marker -> small info tooltip (thumbnail + minimal text)
+//   - Click marker -> right panel (full details)
+// Notes:
+//   - All markers + routes are BLUE (as requested)
+//   - Multiple routes supported
 // ==============================
 
-const periodRange = document.getElementById("periodRange");
-const periodValue = document.getElementById("periodValue");
 const panelTitle = document.getElementById("panelTitle");
-const panelBody = document.getElementById("panelBody");
+const panelBody  = document.getElementById("panelBody");
 
 let map = null;
 let markersLayer = null;
-let routesLayer = null;
+let routesLayer  = null;
 
-let PERIODS = [];              // from data/periods.json
-let OBJECTS_BY_ID = new Map(); // from data/objects.json
+let OBJECTS_BY_ID = new Map();
 
 // Track the currently selected marker so we can keep it darker
 let selectedMarker = null;
 
-// Prevent spamming transitions when dragging slider fast
+// Prevent spamming transitions when switching fast
 let isTransitioning = false;
 
-// Cancels any in-flight route animations when period changes
+// Cancels any in-flight route animations when object changes
 let renderToken = 0;
 
+// ✅ Requested constant colour
+const BLUE = "#2b6cb0";
+
+// ---------------- Panel helpers ----------------
 function setPanel(title, html) {
   panelTitle.textContent = title;
   panelBody.innerHTML = html;
@@ -51,16 +50,11 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
+// ---------------- Map init ----------------
 function initMap() {
   map = L.map("map", { scrollWheelZoom: false }).setView([41.5, 18], 4);
 
-  // ✅ Pane for route end markers (above route lines)
-  if (!map.getPane("routeEndsPane")) {
-    map.createPane("routeEndsPane");
-    map.getPane("routeEndsPane").style.zIndex = 450;
-  }
-
-  // ✅ Clean, label-free basemap (CARTO Light - No Labels)
+  // Clean, label-free basemap (CARTO Light - No Labels)
   L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
     maxZoom: 20,
     subdomains: "abcd",
@@ -68,7 +62,7 @@ function initMap() {
   }).addTo(map);
 
   markersLayer = L.layerGroup().addTo(map);
-  routesLayer = L.layerGroup().addTo(map);
+  routesLayer  = L.layerGroup().addTo(map);
 }
 
 function clearLayers() {
@@ -77,38 +71,7 @@ function clearLayers() {
   selectedMarker = null;
 }
 
-function updateActiveBand(index) {
-  document.querySelectorAll(".bands span").forEach(el => {
-    el.classList.toggle("active", Number(el.dataset.index) === index);
-  });
-}
-
-function updatePeriodUI(index) {
-  const p = PERIODS[index];
-  if (!p) return;
-  const start = p.yearStart ?? "";
-  const end = p.yearEnd ?? "";
-  periodValue.textContent = `${p.label} (${start}–${end})`;
-}
-
-// --- Color / style helpers ---
-function routeColor(influence) {
-  const v = String(influence || "").trim().toLowerCase();
-  if (v === "conquest" || v === "christianity") return "#c53030"; // red
-  if (v === "culture" || v === "cultural") return "#2b6cb0";      // blue
-  if (v === "commerce" || v === "commercial" || v === "islam") return "#2f855a"; // green
-  return "#0b4f6c"; // fallback teal
-}
-
-function categoryColor(category) {
-  const v = String(category || "").trim().toLowerCase();
-  if (v === "culture" || v === "cultural") return "#2b6cb0";     // blue
-  if (v === "commerce" || v === "commercial") return "#2f855a";  // green
-  if (v === "conquest") return "#c53030";                        // red-ish
-  return "#0b4f6c";                                              // fallback teal
-}
-
-// Marker visual states (bigger; base semi-transparent; hover/selected opaque)
+// ---------------- Marker styles ----------------
 function markerStyleBase(color) {
   return {
     radius: 11,
@@ -142,7 +105,7 @@ function markerStyleSelected(color) {
   };
 }
 
-// --- Fade helpers (for period transitions) ---
+// ---------------- Fade helpers ----------------
 function easeLinear(t) { return t; }
 
 function animateStyle(layer, from, to, durationMs = 300, onDone) {
@@ -168,7 +131,6 @@ function animateStyle(layer, from, to, durationMs = 300, onDone) {
 function fadeOutLayers(markersLayer, routesLayer, durationMs = 220) {
   const markers = [];
   markersLayer.eachLayer(l => markers.push(l));
-
   const routes = [];
   routesLayer.eachLayer(l => routes.push(l));
 
@@ -177,14 +139,12 @@ function fadeOutLayers(markersLayer, routesLayer, durationMs = 220) {
       fillOpacity: (typeof m.options?.fillOpacity === "number") ? m.options.fillOpacity : 0.5,
       opacity: (typeof m.options?.opacity === "number") ? m.options.opacity : 1
     };
-    const to = { fillOpacity: 0, opacity: 0 };
-    animateStyle(m, from, to, durationMs);
+    animateStyle(m, from, { fillOpacity: 0, opacity: 0 }, durationMs);
   }
 
   for (const r of routes) {
     const from = { opacity: (typeof r.options?.opacity === "number") ? r.options.opacity : 0.9 };
-    const to = { opacity: 0 };
-    animateStyle(r, from, to, durationMs);
+    animateStyle(r, from, { opacity: 0 }, durationMs);
   }
 
   return new Promise(resolve => setTimeout(resolve, durationMs));
@@ -195,34 +155,9 @@ function fadeInMarker(marker, targetFillOpacity, durationMs = 450) {
   animateStyle(marker, { fillOpacity: 0, opacity: 0 }, { fillOpacity: targetFillOpacity, opacity: 1 }, durationMs);
 }
 
-// ===== Route end marker helper (small rounded square) =====
-function addRouteEndDot({ lat, lng, color, tooltipHtml }) {
-  const size = 11; // ✅ adjust 10–12 if needed
-
-  const dot = L.marker([lat, lng], {
-    pane: "routeEndsPane",
-    interactive: true,
-    icon: L.divIcon({
-      className: "route-end-icon",
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2],
-      html: `<span class="route-end-square" style="background:${escapeHtml(color)}"></span>`
-    })
-  });
-
-  dot.bindTooltip(tooltipHtml, {
-    direction: "top",
-    offset: [0, -8],
-    opacity: 1,
-    className: "route-end-tooltip",
-    sticky: false
-  });
-
-  return dot;
-}
-
-// ===== Curved route helpers (NO plugin) =====
-// ✅ UPDATED: supports per-route curve options: {strength, side, min, max}
+// ---------------- Curved route helpers (NO plugin) ----------------
+// Supports per-route curve options: {strength, side, min, max}
+// If you set strength:0 and min:0 (like you already do), it becomes a straight line.
 function buildCurvedPoints(fromLatLng, toLatLng, steps = 28, curveOpts = {}) {
   const zoom = map.getZoom();
   const p0 = map.project(fromLatLng, zoom);
@@ -232,23 +167,18 @@ function buildCurvedPoints(fromLatLng, toLatLng, steps = 28, curveOpts = {}) {
   const dy = p2.y - p0.y;
   const len = Math.sqrt(dx * dx + dy * dy) || 1;
 
-  // perpendicular unit vector
   const ux = -dy / len;
   const uy = dx / len;
 
-  // ✅ per-route overrides (all optional)
   const strength = Number.isFinite(curveOpts.strength) ? curveOpts.strength : 0.18;
-  const minBend = Number.isFinite(curveOpts.min) ? curveOpts.min : 50;
-  const maxBend = Number.isFinite(curveOpts.max) ? curveOpts.max : 140;
+  const minBend  = Number.isFinite(curveOpts.min) ? curveOpts.min : 50;
+  const maxBend  = Number.isFinite(curveOpts.max) ? curveOpts.max : 140;
 
-  // side should be 1 or -1 (default 1)
   const sideRaw = curveOpts.side;
   const side = (sideRaw === -1 || sideRaw === 1) ? sideRaw : 1;
 
-  // bend in pixels (scaled by distance, clamped) and then side applied
   const bend = Math.min(maxBend, Math.max(minBend, len * strength)) * side;
 
-  // control point in projected space
   const mx = (p0.x + p2.x) / 2;
   const my = (p0.y + p2.y) / 2;
   const p1 = L.point(mx + ux * bend, my + uy * bend);
@@ -264,12 +194,7 @@ function buildCurvedPoints(fromLatLng, toLatLng, steps = 28, curveOpts = {}) {
   return pts;
 }
 
-async function animateRouteCrawlCurved(polyline, {
-  points,
-  durationMs = 1500,
-  delayMs = 0,
-  token
-} = {}) {
+async function animateRouteCrawlCurved(polyline, { points, durationMs = 1500, delayMs = 0, token } = {}) {
   if (delayMs > 0) await new Promise(r => setTimeout(r, delayMs));
   if (token !== renderToken) return;
 
@@ -294,21 +219,13 @@ async function animateRouteCrawlCurved(polyline, {
   requestAnimationFrame(frame);
 }
 
-// ✅ helper for period-aware routes
-function routeVisibleInPeriod(route, periodIndex) {
-  const p = route?.periods;
-  if (!p || !Array.isArray(p) || p.length === 0) return true; // default: show always
-  return p.includes(periodIndex);
-}
-
-// --- Hover tooltip HTML (minimal) ---
+// ---------------- Tooltip + panel HTML ----------------
 function buildHoverHTML(obj, locLabel) {
   const title = escapeHtml(obj?.title || obj?.id || "Object");
   const thumb = String(obj?.hover?.thumb || "").trim();
   const yearRaw = obj?.hover?.year ?? obj?.year ?? "";
   const year = yearRaw ? escapeHtml(yearRaw) : "";
 
-  // Use per-marker label first, fall back to obj.hover.location if present
   const locRaw = locLabel ?? obj?.hover?.location ?? "";
   const loc = locRaw ? escapeHtml(locRaw) : "";
 
@@ -328,19 +245,12 @@ function buildHoverHTML(obj, locLabel) {
   `;
 }
 
-// --- Right panel HTML ---
-function buildPanelHTML(obj, period) {
+function buildPanelHTML(obj) {
   const title = escapeHtml(obj?.title || obj?.id || "Object");
-  const subtitle = escapeHtml(obj?.panel?.subtitle || "");
   const body = escapeHtml(obj?.panel?.body || "");
 
   const yearRaw = obj?.panel?.year ?? obj?.hover?.year ?? obj?.year ?? "";
   const year = yearRaw ? escapeHtml(yearRaw) : "";
-
-  const tags = Array.isArray(obj?.tags) ? obj.tags : [];
-  const tagHtml = tags.length
-    ? `<p><strong>Tags:</strong> ${tags.map(t => escapeHtml(t)).join(", ")}</p>`
-    : "";
 
   const locs = Array.isArray(obj?.locations) ? obj.locations : [];
   const locHtml = locs.length
@@ -363,231 +273,195 @@ function buildPanelHTML(obj, period) {
     ${year ? `<p><strong>Date:</strong> ${year}</p>` : ""}
     ${locHtml}
     ${body ? `<p>${body}</p>` : ""}
-
     ${imagesHtml}
   `;
 }
 
-// --- Data loading ---
+// ---------------- Data loading ----------------
 async function loadData() {
-  const [objectsRes, periodsRes] = await Promise.all([
-    fetch("data/objects.json", { cache: "no-store" }),
-    fetch("data/periods.json", { cache: "no-store" })
-  ]);
-
+  const objectsRes = await fetch("data/objects.json", { cache: "no-store" });
   if (!objectsRes.ok) throw new Error("Failed to load data/objects.json");
-  if (!periodsRes.ok) throw new Error("Failed to load data/periods.json");
 
   const objectsArr = await objectsRes.json();
-  const periodsObj = await periodsRes.json();
-
-  if (!Array.isArray(objectsArr)) {
-    throw new Error("objects.json must be an array of objects");
-  }
-  if (!periodsObj || !Array.isArray(periodsObj.periods)) {
-    throw new Error('periods.json must be an object like: { "periods": [ ... ] }');
-  }
+  if (!Array.isArray(objectsArr)) throw new Error("objects.json must be an array of objects");
 
   OBJECTS_BY_ID = new Map(objectsArr.map(o => [o.id, o]));
-  PERIODS = periodsObj.periods;
-
-  periodRange.min = "0";
-  periodRange.max = String(Math.max(0, PERIODS.length - 1));
-  if (!periodRange.value) periodRange.value = "0";
-
-  const v = Number(periodRange.value);
-  if (v > PERIODS.length - 1) periodRange.value = String(PERIODS.length - 1);
 }
 
-// --- Render for a period index ---
-function drawForPeriod(periodIndex) {
+// ---------------- Marker factory (origin + destinations use this) ----------------
+function addInteractiveMarker(obj, lat, lng, locLabel) {
+  const baseStyle = markerStyleBase(BLUE);
+  const hoverStyle = markerStyleHover(BLUE);
+  const selectedStyle = markerStyleSelected(BLUE);
+
+  const marker = L.circleMarker([Number(lat), Number(lng)], baseStyle);
+  marker.__baseStyle = baseStyle;
+  marker.__hoverStyle = hoverStyle;
+  marker.__selectedStyle = selectedStyle;
+
+  marker.bindTooltip(buildHoverHTML(obj, locLabel), {
+    direction: "top",
+    offset: [0, -10],
+    opacity: 1,
+    className: "hover-tooltip",
+    sticky: true
+  });
+
+  marker.on("mouseover", () => {
+    if (selectedMarker === marker) return;
+    marker.setStyle(marker.__hoverStyle);
+  });
+
+  marker.on("mouseout", () => {
+    if (selectedMarker === marker) return;
+    marker.setStyle(marker.__baseStyle);
+  });
+
+  marker.on("click", () => {
+    if (selectedMarker && selectedMarker !== marker) {
+      selectedMarker.setStyle(selectedMarker.__baseStyle);
+    }
+    selectedMarker = marker;
+    marker.setStyle(marker.__selectedStyle);
+
+    setPanel(obj.title || obj.id || "Object", buildPanelHTML(obj));
+  });
+
+  marker.addTo(markersLayer);
+  fadeInMarker(marker, marker.__baseStyle.fillOpacity, 400);
+
+  return marker;
+}
+
+// ---------------- Render selected object ----------------
+function drawForObject(objectId) {
   renderToken++;
   const token = renderToken;
 
-  let routeIndex = 0;
-
-  const period = PERIODS[periodIndex];
   clearLayers();
 
-  if (!period) {
-    setPanel("No period", "<p>Period not found.</p>");
+  const obj = OBJECTS_BY_ID.get(objectId);
+  if (!obj) {
+    setPanel("Not found", `<p>Object <strong>${escapeHtml(objectId)}</strong> not found in objects.json.</p>`);
     return;
   }
 
-  const objectIds = Array.isArray(period.objects) ? period.objects : [];
+  const locations = Array.isArray(obj.locations) ? obj.locations : [];
+  const routes = Array.isArray(obj.routes) ? obj.routes : [];
 
-  if (objectIds.length === 0) {
-    setPanel("No objects", `<p>No objects configured for ${escapeHtml(period.label)}.</p>`);
+  if (locations.length === 0) {
+    setPanel(obj.title || obj.id || "Object", `<p>No locations configured for this object.</p>`);
     return;
   }
 
-  for (const id of objectIds) {
-    const obj = OBJECTS_BY_ID.get(id);
-    if (!obj) continue;
+  // Avoid duplicate destination markers if multiple routes share the same coords
+  const seenDest = new Set();
+  let routeIndex = 0;
 
-    const col = categoryColor(obj.category);
-    const baseStyle = markerStyleBase(col);
-    const hoverStyle = markerStyleHover(col);
-    const selectedStyle = markerStyleSelected(col);
+  for (const loc of locations) {
+    if (loc?.lat == null || loc?.lng == null) continue;
 
-    const locations = Array.isArray(obj.locations) ? obj.locations : [];
-    const routes = Array.isArray(obj.routes) ? obj.routes : [];
+    // origin marker
+    addInteractiveMarker(obj, loc.lat, loc.lng, loc.label);
 
-    if (locations.length === 0) continue;
+    // routes from this origin
+    for (const r of routes) {
+      if (r?.toLat == null || r?.toLng == null) continue;
 
-    for (const loc of locations) {
-      if (loc?.lat == null || loc?.lng == null) continue;
+      const from = L.latLng(Number(loc.lat), Number(loc.lng));
+      const to = L.latLng(Number(r.toLat), Number(r.toLng));
+      if (!Number.isFinite(from.lat) || !Number.isFinite(from.lng) || !Number.isFinite(to.lat) || !Number.isFinite(to.lng)) continue;
 
-      const marker = L.circleMarker([Number(loc.lat), Number(loc.lng)], baseStyle);
-      marker.__baseStyle = baseStyle;
-      marker.__hoverStyle = hoverStyle;
-      marker.__selectedStyle = selectedStyle;
+      // curve options (preserve your existing per-route curve config)
+      const c = r.curve || {};
+      const autoSide = (routeIndex % 2 === 0) ? 1 : -1;
 
-      marker.bindTooltip(buildHoverHTML(obj, loc.label), {
-        direction: "top",
-        offset: [0, -10],
-        opacity: 1,
-        className: "hover-tooltip",
-        sticky: true
+      const curveOpts = {
+        strength: (c.strength != null) ? Number(c.strength) : undefined,
+        min:      (c.min != null) ? Number(c.min) : undefined,
+        max:      (c.max != null) ? Number(c.max) : undefined,
+        side:     (c.side === 1 || c.side === -1) ? c.side : autoSide
+      };
+
+      const curvePts = buildCurvedPoints(from, to, 28, curveOpts);
+
+      const routeLine = L.polyline(curvePts.slice(0, 2), {
+        color: BLUE,
+        weight: 3,
+        opacity: 0.9,
+        dashArray: "6 8"
+      }).addTo(routesLayer);
+
+      animateRouteCrawlCurved(routeLine, {
+        points: curvePts,
+        durationMs: 1500,
+        delayMs: routeIndex * 200,
+        token
       });
 
-      marker.on("mouseover", () => {
-        if (selectedMarker === marker) return;
-        marker.setStyle(marker.__hoverStyle);
-      });
-
-      marker.on("mouseout", () => {
-        if (selectedMarker === marker) return;
-        marker.setStyle(marker.__baseStyle);
-      });
-
-      marker.on("click", () => {
-        if (selectedMarker && selectedMarker !== marker) {
-          selectedMarker.setStyle(selectedMarker.__baseStyle);
-        }
-        selectedMarker = marker;
-        marker.setStyle(marker.__selectedStyle);
-        setPanel(obj.title || obj.id || "Object", buildPanelHTML(obj, period));
-      });
-
-      marker.addTo(markersLayer);
-      fadeInMarker(marker, marker.__baseStyle.fillOpacity, 400);
-
-      for (const r of routes) {
-        if (!routeVisibleInPeriod(r, periodIndex)) continue;
-        if (r?.toLat == null || r?.toLng == null) continue;
-
-        const from = L.latLng(Number(loc.lat), Number(loc.lng));
-        const to = L.latLng(Number(r.toLat), Number(r.toLng));
-        if (!Number.isFinite(from.lat) || !Number.isFinite(from.lng) || !Number.isFinite(to.lat) || !Number.isFinite(to.lng)) continue;
-
-        const rCol = routeColor(r.influence);
-
-        // ✅ per-route curve overrides (optional) + automatic fan-out
-        const c = r.curve || {};
-        const autoSide = (routeIndex % 2 === 0) ? 1 : -1;
-
-        const curveOpts = {
-          strength: (c.strength != null) ? Number(c.strength) : undefined,
-          min:      (c.min != null) ? Number(c.min) : undefined,
-          max:      (c.max != null) ? Number(c.max) : undefined,
-          side:     (c.side === 1 || c.side === -1) ? c.side : autoSide
-        };
-
-        // curved points + curved crawl
-        const curvePts = buildCurvedPoints(from, to, 28, curveOpts);
-
-        const routeLine = L.polyline(curvePts.slice(0, 2), {
-          color: rCol,
-          weight: 3,
-          opacity: 0.9,
-          dashArray: "6 8"
-        }).addTo(routesLayer);
-
-        animateRouteCrawlCurved(routeLine, {
-          points: curvePts,
-          durationMs: 1500,
-          delayMs: routeIndex * 200,
-          token
-        });
-
-        // ✅ Route end marker (small rounded square, same colour as route)
-        // Optional JSON: r.endNote (very short)
-        const endLabel = escapeHtml(r.toLabel || "Destination");
-        const endNoteRaw = String(r.endNote || "").trim();
-        const endNote = endNoteRaw ? escapeHtml(endNoteRaw) : "";
-
-        const tipHtml = `
-          <div class="routeTip">
-            <div class="routeTip__loc">${endLabel}</div>
-            ${endNote ? `<div class="routeTip__txt">${endNote}</div>` : ""}
-          </div>
-        `;
-
-        addRouteEndDot({
-          lat: to.lat,
-          lng: to.lng,
-          color: rCol,
-          tooltipHtml: tipHtml
-        }).addTo(routesLayer);
-
-        routeIndex++;
+      // destination marker (same size/colour/behaviour as origin marker)
+      const key = `${to.lat.toFixed(6)},${to.lng.toFixed(6)}`;
+      if (!seenDest.has(key)) {
+        seenDest.add(key);
+        addInteractiveMarker(obj, to.lat, to.lng, r.toLabel || "Destination");
       }
+
+      routeIndex++;
     }
   }
 
-  setPanel("Select an object", `<p>Hover markers to preview. Click a marker to see full details.</p>`);
+  setPanel("Select a marker", `<p>Hover markers to preview. Click a marker to see full details.</p>`);
 }
 
-async function applyPeriod(index) {
+// ---------------- Tabs wiring ----------------
+function setActiveTab(objectId) {
+  document.querySelectorAll(".tabBtn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.object === objectId);
+    btn.setAttribute("aria-selected", btn.dataset.object === objectId ? "true" : "false");
+  });
+}
+
+async function applyObject(objectId) {
   if (isTransitioning) return;
   isTransitioning = true;
 
-  const idx = Math.max(0, Math.min(index, PERIODS.length - 1));
-  periodRange.value = String(idx);
-  updatePeriodUI(idx);
-  updateActiveBand(idx);
+  setActiveTab(objectId);
 
-  await fadeOutLayers(markersLayer, routesLayer, 400);
-  drawForPeriod(idx);
+  await fadeOutLayers(markersLayer, routesLayer, 250);
+  drawForObject(objectId);
 
   isTransitioning = false;
 }
 
-function wireControls() {
-  periodRange.addEventListener("input", (e) => {
-    applyPeriod(Number(e.target.value));
-  });
-}
+function wireTabs() {
+  const buttons = Array.from(document.querySelectorAll(".tabBtn"));
 
-function wireBands() {
-  document.querySelectorAll(".bands span").forEach((el) => {
-    const activate = () => {
-      const idx = Number(el.dataset.index);
-      if (Number.isFinite(idx) && idx >= 0 && idx < PERIODS.length) {
-        applyPeriod(idx);
-      }
-    };
+  for (const btn of buttons) {
+    const id = btn.dataset.object;
 
-    el.addEventListener("click", activate);
+    btn.addEventListener("click", () => applyObject(id));
 
-    el.addEventListener("keydown", (ev) => {
+    btn.addEventListener("keydown", (ev) => {
       if (ev.key === "Enter" || ev.key === " ") {
         ev.preventDefault();
-        activate();
+        applyObject(id);
       }
     });
-  });
+  }
 }
 
+// ---------------- Main ----------------
 (async function main() {
   initMap();
-  wireControls();
-  wireBands();
+  wireTabs();
 
   try {
     await loadData();
-    await applyPeriod(Number(periodRange.value));
+
+    // default to first tab
+    const first = document.querySelector(".tabBtn")?.dataset.object;
+    if (first) await applyObject(first);
+
   } catch (err) {
     setPanel("Error", `<p>${escapeHtml(err.message)}</p>`);
     console.error(err);
