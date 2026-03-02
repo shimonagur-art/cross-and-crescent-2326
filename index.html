@@ -15,36 +15,48 @@
 
   <main class="layout">
 
-    <!-- ================= LEFT COLUMN ================= -->
+    <!-- LEFT COLUMN -->
     <section class="mapWrap">
 
-      <!-- ✅ Tabs ONLY above map -->
+      <!-- Tabs -->
       <div class="tabsHeader">
         <nav class="objectTabs" aria-label="Objects">
-          <button class="tabBtn active" type="button" data-object="obj_001">
+
+          <button class="tabBtn active"
+                  type="button"
+                  data-object="obj_001">
             Casket
           </button>
-          <button class="tabBtn" type="button" data-object="obj_011">
+
+          <button class="tabBtn"
+                  type="button"
+                  data-object="obj_011">
             Box and Lid
           </button>
-          <button class="tabBtn" type="button" data-object="obj_010">
+
+          <button class="tabBtn"
+                  type="button"
+                  data-object="obj_010">
             Water Flask
           </button>
+
         </nav>
       </div>
 
       <div id="map"></div>
 
       <p class="attribution">
-        Map data © 
-        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+        Map data ©
+        <a href="https://www.openstreetmap.org/copyright"
+           target="_blank"
+           rel="noreferrer">
           OpenStreetMap
         </a>.
       </p>
 
     </section>
 
-    <!-- ================= RIGHT COLUMN ================= -->
+    <!-- RIGHT COLUMN -->
     <aside class="panel">
       <h2 id="panelTitle">Select an object</h2>
       <div id="panelBody" class="panelBody">
