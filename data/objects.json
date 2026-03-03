@@ -356,67 +356,57 @@
     "routes": []
   },
   {
-  "id": "obj_010",
-  "title": "Water flask (Pilgrim flask)",
-  "category": "Commerce",
-  "tags": [],
-  "year": "ca. 1250-1260",
-  "hover": {
-    "thumb": "images/objects/obj_010/010thumb.jpg",
-    "text": "Water flask (Pilgrim flask)",
+    "id": "obj_010",
+    "title": "Water flask (Pilgrim flask)",
+    "category": "Commerce",
+    "tags": [],
     "year": "ca. 1250-1260",
-    "location": "Syria"
-  },
-  "panel": {
-    "subtitle": "Water flask (Pilgrim flask)",
-    "body": "This flask was made using either Egyptian or Syrian enamelling, whilst featuring Christian decoration. The technique of animal patterns on the side originated from Persia, displaying a wide-ranging transport of culture between Christians and Muslims throughout the Middle East.",
-    "year": "ca. 1250-1260",
-    "images": [
-      "images/objects/obj_010/010image1.jpg",
-      "images/objects/obj_010/010image2.jpg",
-      "images/objects/obj_010/010image3.jpg",
-      "images/objects/obj_010/010image4.jpg",
-      "images/objects/obj_010/010image5.jpg",
-      "images/objects/obj_010/010image6.jpg",
-      "images/objects/obj_010/010image7.jpg",
-      "images/objects/obj_010/010image8.jpg",
-      "images/objects/obj_010/010image9.jpg",
-      "images/objects/obj_010/010image10.jpg"
+    "hover": {
+      "thumb": "images/objects/obj_010/010thumb.jpg",
+      "text": "Water flask (Pilgrim flask)",
+      "year": "ca. 1250-1260",
+      "location": "Syria"
+    },
+    "panel": {
+      "subtitle": "Water flask (Pilgrim flask)",
+      "body": "This flask was made using either Egyptian or Syrian enamelling, whilst featuring Christian decoration. The technique of animal patterns on the side originated from Persia, displaying a wide-ranging transport of culture between Christians and Muslims throughout the Middle East.",
+      "year": "ca. 1250-1260",
+      "images": [
+        "images/objects/obj_010/010image1.jpg",
+        "images/objects/obj_010/010image2.jpg",
+        "images/objects/obj_010/010image3.jpg",
+        "images/objects/obj_010/010image4.jpg",
+        "images/objects/obj_010/010image5.jpg",
+        "images/objects/obj_010/010image6.jpg",
+        "images/objects/obj_010/010image7.jpg",
+        "images/objects/obj_010/010image8.jpg",
+        "images/objects/obj_010/010image9.jpg",
+        "images/objects/obj_010/010image10.jpg"
+      ]
+    },
+    "locations": [
+      {
+        "label": "Syria",
+        "lat": 33.5138,
+        "lng": 38.9000
+      }
+    ],
+    "routes": [
+      {
+        "toLat": 30.06,
+        "toLng": 31.26,
+        "influence": "culture",
+        "toLabel": "Cairo",
+        "endNote": "Add text here"
+      },
+      {
+        "toLat": 35.6892,
+        "toLng": 51.3890,
+        "influence": "culture",
+        "toLabel": "Tehran",
+        "endNote": "Add text here"
+      }
     ]
-  },
-  "locations": [
-    {
-      "label": "Syria",
-      "lat": 33.5138,
-      "lng": 38.9000
-    },
-    {
-      "label": "Cairo",
-      "lat": 30.06,
-      "lng": 31.26
-    },
-    {
-      "label": "Tehran",
-      "lat": 35.6892,
-      "lng": 51.3890
-    }
-  ],
-  "routes": [
-    {
-      "toLat": 30.06,
-      "toLng": 31.26,
-      "influence": "culture",
-      "toLabel": "Cairo",
-      "endNote": "Add text here"
-    },
-    {
-      "toLat": 35.6892,
-      "toLng": 51.3890,
-      "influence": "culture",
-      "toLabel": "Tehran",
-      "endNote": "Add text here"
-    }
-  ]
   },
   {
     "id": "obj_011",
@@ -450,7 +440,7 @@
         "lng": 37.6000
       }
     ],
-    "routes": [] 
+    "routes": []
   },
   {
     "id": "obj_012",
@@ -528,7 +518,7 @@
       ]
     },
     "locations": [
-          {
+      {
         "label": "Middle East (Most likely Syria or Egypt)",
         "lat": 36.2021,
         "lng": 37.1343
