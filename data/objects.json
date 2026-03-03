@@ -355,7 +355,7 @@
     ],
     "routes": []
   },
-{
+  {
   "id": "obj_010",
   "title": "Water flask (Pilgrim flask)",
   "category": "Commerce",
@@ -417,7 +417,7 @@
       "endNote": "Add text here"
     }
   ]
-}
+  },
   {
     "id": "obj_011",
     "title": "Box and Lid",
@@ -449,9 +449,9 @@
         "lat": 33.5138,
         "lng": 37.6000
       }
-    ]
-    
-    },
+    ],
+    "routes": [] 
+  },
   {
     "id": "obj_012",
     "title": "Astrolabe",
