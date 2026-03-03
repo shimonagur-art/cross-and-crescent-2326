@@ -1,10 +1,10 @@
 [
   {
     "id": "obj_001",
-    "title": "Casket",
+    "title": "Italian Casket with Egyptian Base",
     "category": "Culture",
     "tags": [],
-    "year": "ca. 1000-1150",
+    "year": "ca. 1000-1150 (base), ca. 1200-1250 (casket)",
     "hover": {
       "thumb": "images/objects/obj_001/001thumb.jpg",
       "text": "Italian Casket with Egyptian Base",
@@ -12,9 +12,9 @@
       "location": "Sicily"
     },
     "panel": {
-      "subtitle": "Casket",
-      "body": "-\tThis casket displays the cultural exchange between Christians and Muslims, with the base being made in 11th century Egypt, before being transported to Sicily where the casket was completed in the 13th century.",
-      "year": "ca. 1000-1150",
+      "subtitle": "Italian Casket with Egyptian Base",
+      "body": "This casket displays the cultural exchange between Christians and Muslims, with the base being made in 11th century Egypt, before being transported to Sicily where the casket was completed in the 13th century.",
+      "year": "ca. 1000-1150 (base), ca. 1200-1250 (casket)",
       "images": [
         "images/objects/obj_001/001image1.jpg",
         "images/objects/obj_001/001image2.jpg",
