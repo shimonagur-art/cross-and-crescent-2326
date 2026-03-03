@@ -7,13 +7,15 @@
     "year": "ca. 1000-1150",
     "hover": {
       "thumb": "images/objects/obj_001/001thumb.jpg",
-      "text": "Casket",
-      "year": "ca. 1000-1150",
+      "text": "Italian Casket with Egyptian Base",
+      "year": "ca. 1000-1150 (base)
+-	ca. 1200-1250 (casket)
+",
       "location": "Sicily"
     },
     "panel": {
       "subtitle": "Casket",
-      "body": "This casket displays the cultural exchange between Christians and Muslims, as despite being made in Sicily, it is inscribed with Islamic artwork and its base displays a rare woodcrafting technique that originates from Fatimid Cairo. The base's journey from North Africa to Europe also reflects the strong market connections between the two regions, with these Muslim products being seen as a sign of wealth and luxury to Christians in Europe.",
+      "body": "-	This casket displays the cultural exchange between Christians and Muslims, with the base being made in 11th century Egypt, before being transported to Sicily where the casket was completed in the 13th century.",
       "year": "ca. 1000-1150",
       "images": [
         "images/objects/obj_001/001image1.jpg",
